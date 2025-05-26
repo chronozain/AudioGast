@@ -307,6 +307,28 @@
         XLSX.writeFile(wb, "audioporteros.xlsx");
     });
 }
+        //Traer deuda de domicilio
+        function validateAudioporteroDebts() {
+    database.ref('audioporteros').once('value', snapshot => {
+        const audioporteros = [];
+
+        snapshot.forEach(childSnapshot => {
+            const audioportero = { id: childSnapshot.key, ...childSnapshot.val() };
+            audioporteros.push(audioportero);
+        });
+
+        database.ref('deudas').once('value', deudaSnapshot => {
+            const deudas = deudaSnapshot.val() || {};
+
+            audioporteros.forEach(audioportero => {
+                const deuda = Object.values(deudas).find(d => d.direccion === audioportero.direccion);
+                if (deuda && deuda.monto >= 1080) {
+                    document.querySelector(`#row-${audioportero.id}`).classList.add('bg-red-500', 'text-white');
+                }
+            });
+        });
+    });
+}
         //Importar datos XLS
         function importFromExcel(event) {
     const file = event.target.files[0];
