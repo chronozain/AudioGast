@@ -62,16 +62,16 @@
                         </div>
                     </div>
                     
-                    <div>
-                        <h3 class="text-lg font-medium mb-3 text-gray-700">Nuevo Audioportero</h3>
-                        <button onclick="showAddForm()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition w-full">
-                            <i class="fas fa-plus mr-2"></i>Agregar Nuevo
-                        </button>
-                                            <button onclick="exportToExcel()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition">
-    <i class="fas fa-file-export mr-2"></i> Exportar a Excel
-</button>
-<input type="file" accept=".xlsx" onchange="importFromExcel(event)" class="mt-4">
-                    </div>
+<div class="flex flex-col gap-4">
+    <h3 class="text-lg font-medium text-gray-700">Nuevo Audioportero</h3>
+    <button onclick="showAddForm()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition w-full">
+        <i class="fas fa-plus mr-2"></i>Agregar Nuevo
+    </button>
+    <button onclick="exportToExcel()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition">
+        <i class="fas fa-file-export mr-2"></i> Exportar a Excel
+    </button>
+    <input type="file" accept=".xlsx" onchange="importFromExcel(event)">
+</div>
                 </div>
             </div>
 
