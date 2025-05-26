@@ -308,7 +308,7 @@
     });
 }
         //Traer deuda de domicilio
-        function validateAudioporteroDebts() {
+function validateAudioporteroDebts() {
     database.ref('audioporteros').once('value', snapshot => {
         const audioporteros = [];
 
@@ -322,8 +322,14 @@
 
             audioporteros.forEach(audioportero => {
                 const deuda = Object.values(deudas).find(d => d.direccion === audioportero.direccion);
+                
+                const row = document.querySelector(`#row-${audioportero.id}`);
                 if (deuda && deuda.monto >= 1080) {
-                    document.querySelector(`#row-${audioportero.id}`).classList.add('bg-red-500', 'text-white');
+                    row.classList.add('bg-red-500', 'text-white'); // Resaltar en rojo
+                    row.setAttribute('data-deudor', 'true'); // Marcarlo como deudor
+                } else {
+                    row.classList.remove('bg-red-500', 'text-white'); // Quitar si la deuda es menor
+                    row.removeAttribute('data-deudor');
                 }
             });
         });
