@@ -387,6 +387,7 @@ function sortTable(field) { // [cite: 248]
         return 0; // [cite: 249]
     });
     displayAudioporteros(audioporterosData); // [cite: 250]
+    validateAudioporteroDebts();
 }
 
 function loadAudioporteros() { // [cite: 250]
@@ -424,6 +425,7 @@ function searchAudioportero() { // [cite: 267]
         });
 
         displayAudioporteros(searchResults); // [cite: 271]
+        validateAudioporteroDebts();
     });
 }
         
@@ -533,17 +535,18 @@ function searchAudioportero() {
             });
         }
         
-        function displayAudioporteros(audioporteros) {
-            const tableBody = document.getElementById('audioboardTableBody');
-            tableBody.innerHTML = '';
+       function displayAudioporteros(audioporteros) {
+            const tableBody = document.getElementById('audioboardTableBody'); // [cite: 108]
+            tableBody.innerHTML = ''; // [cite: 109]
             
             if (audioporteros.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No se encontraron audioporteros</td></tr>';
-                return;
+                tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No se encontraron audioporteros</td></tr>'; // [cite: 109]
+                return; // [cite: 110]
             }
             
             audioporteros.forEach(audioportero => {
                 const row = document.createElement('tr');
+                row.id = `row-${audioportero.id}`; // <--- CAMBIO: Asignar ID a la fila
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">${audioportero.codigo}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${audioportero.numero}</td>
@@ -558,8 +561,8 @@ function searchAudioportero() {
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </td>
-                `;
-                tableBody.appendChild(row);
+                `; // [cite: 110, 111, 112, 113]
+                tableBody.appendChild(row); // [cite: 114]
             });
         }
         
