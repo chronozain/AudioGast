@@ -397,30 +397,30 @@
             }
         }
         
-        function searchAudioportero() {
-            const searchTerm = document.getElementById('searchCode').value.trim().toLowerCase();
-            if (!searchTerm) {
-                loadAudioporteros();
-                return;
-            }
-            
-            database.ref('audioporteros').once('value', snapshot => {
-                const audioporteros = [];
-                snapshot.forEach(childSnapshot => {
-                    const audioportero = childSnapshot.val();
-                    if (audioportero.codigo.toLowerCase().includes(searchTerm) || 
-                        audioportero.nombre.toLowerCase().includes(searchTerm) ||
-                        audioportero.numero.toLowerCase().includes(searchTerm)) {
-                        audioporteros.push({
-                            id: childSnapshot.key,
-                            ...audioportero
-                        });
-                    }
+function searchAudioportero() {
+    const searchTerm = document.getElementById('searchCode').value.trim().toLowerCase();
+    if (!searchTerm) {
+        loadAudioporteros();
+        return;
+    }
+
+    database.ref('audioporteros').once('value', snapshot => {
+        const audioporteros = [];
+        snapshot.forEach(childSnapshot => {
+            const audioportero = childSnapshot.val();
+            // Verificar coincidencia exacta en cualquier campo, ignorando mayúsculas/minúsculas
+            if ([audioportero.codigo, audioportero.nombre, audioportero.numero, audioportero.direccion, audioportero.telefono]
+                .some(value => value.toLowerCase() === searchTerm)) {
+                audioporteros.push({
+                    id: childSnapshot.key,
+                    ...audioportero
                 });
-                
-                displayAudioporteros(audioporteros);
-            });
-        }
+            }
+        });
+
+        displayAudioporteros(audioporteros);
+    });
+}
         
         function loadAudioporteros() {
             database.ref('audioporteros').once('value', snapshot => {
