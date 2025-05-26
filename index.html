@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Audioportero y Gastos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .active-tab {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .balance-positive {
+            color: #10b981;
+        }
+        .balance-negative {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Administración</h1>
+            <p class="text-gray-600">Gestión de Audioporteros y Registro de Gastos</p>
+        </header>
+
+        <div class="flex border-b mb-8">
+            <button id="audiobtn" class="px-6 py-3 text-lg font-medium active-tab">
+                <i class="fas fa-door-open mr-2"></i>Audioportero
+            </button>
+            <button id="gastosbtn" class="px-6 py-3 text-lg font-medium text-gray-500 hover:text-gray-700">
+                <i class="fas fa-money-bill-wave mr-2"></i>Registro de Gastos
+            </button>
+        </div>
+
+        <!-- Sección Audioportero -->
+        <div id="audioboard" class="fade-in">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Gestión de Audioporteros</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-700">Buscar Audioportero</h3>
+                        <div class="flex">
+                            <input type="text" id="searchCode" placeholder="Ingrese código" class="flex-1 px-4 py-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button onclick="searchAudioportero()" class="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-medium mb-3 text-gray-700">Nuevo Audioportero</h3>
+                        <button onclick="showAddForm()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition w-full">
+                            <i class="fas fa-plus mr-2"></i>Agregar Nuevo
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulario de agregar/editar -->
+            <div id="audioboardForm" class="bg-white rounded-lg shadow-md p-6 mb-8 hidden">
+                <h3 class="text-lg font-medium mb-4 text-gray-800" id="formTitle">Agregar Nuevo Audioportero</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 mb-1">Código Audioportero</label>
+                        <input type="text" id="codigo" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-1">Número Audioportero</label>
+                        <input type="text" id="numero" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-1">Nombre del Propietario</label>
+                        <input type="text" id="nombre" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-1">Dirección</label>
+                        <input type="text" id="direccion" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-1">Teléfono</label>
+                        <input type="text" id="telefono" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button onclick="hideAddForm()" class="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100 transition">Cancelar</button>
+                    <button onclick="saveAudioportero()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">
+                        <i class="fas fa-save mr-2"></i>Guardar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Resultados de búsqueda -->
+            <div id="audioboardResults" class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-medium mb-4 text-gray-800">Resultados</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Número</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Propietario</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dirección</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audioboardTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Los datos se cargarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección Gastos -->
+        <div id="gastosboard" class="fade-in hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-medium mb-4 text-gray-800">Registrar Gasto</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-gray-700 mb-1">Descripción</label>
+                            <input type="text" id="gastoDesc" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-1">Monto</label>
+                            <input type="number" id="gastoMonto" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-1">Fecha</label>
+                            <input type="date" id="gastoFecha" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-1">Categoría</label>
+                            <select id="gastoCategoria" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="mantenimiento">Mantenimiento</option>
+                                <option value="servicios">Servicios</option>
+                                <option value="reparaciones">Reparaciones</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                        </div>
+                        <button onclick="addGasto()" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition w-full">
+                            <i class="fas fa-minus-circle mr-2"></i>Registrar Gasto
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-medium mb-4 text-gray-800">Registrar Ingreso</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-gray-700 mb-1">Descripción</label>
+                            <input type="text" id="ingresoDesc" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-1">Monto</label>
+                            <input type="number" id="ingresoMonto" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-1">Fecha</label>
+                            <input type="date" id="ingresoFecha" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-1">Categoría</label>
+                            <select id="ingresoCategoria" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="cuotas">Cuotas</option>
+                                <option value="donaciones">Donaciones</option>
+                                <option value="otros">Otros</option>
+                            </select>
+                        </div>
+                        <button onclick="addIngreso()" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition w-full">
+                            <i class="fas fa-plus-circle mr-2"></i>Registrar Ingreso
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-medium mb-4 text-gray-800">Balance General</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Total Ingresos:</span>
+                            <span id="totalIngresos" class="font-semibold text-green-500">$0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700">Total Gastos:</span>
+                            <span id="totalGastos" class="font-semibold text-red-500">$0.00</span>
+                        </div>
+                        <hr class="border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700 font-medium">Balance:</span>
+                            <span id="balanceTotal" class="text-xl font-bold">$0.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <h4 class="text-md font-medium mb-2 text-gray-700">Filtrar por fecha</h4>
+                        <div class="flex space-x-2">
+                            <input type="date" id="fechaInicio" class="flex-1 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="date" id="fechaFin" class="flex-1 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button onclick="filterByDate()" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-medium mb-4 text-gray-800">Registros</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gastosTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Los datos se cargarán aquí -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Inicializar Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyAHsb_4DWe8L67VIdt2PI0irqZjQyUp17M",
+            authDomain: "cerrodepasco-a935c.firebaseapp.com",
+            databaseURL: "https://cerrodepasco-a935c-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "cerrodepasco-a935c",
+            storageBucket: "cerrodepasco-a935c.firebasestorage.app",
+            messagingSenderId: "480610541864",
+            appId: "1:480610541864:web:e788b6df3264059d26301d"
+        };
+        
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // Variables globales
+        let editingAudioporteroId = null;
+        let editingMovimientoId = null;
+        
+        // Cambiar entre pestañas
+        document.getElementById('audiobtn').addEventListener('click', function() {
+            document.getElementById('audiobtn').classList.add('active-tab');
+            document.getElementById('gastosbtn').classList.remove('active-tab');
+            document.getElementById('audioboard').classList.remove('hidden');
+            document.getElementById('gastosboard').classList.add('hidden');
+            loadAudioporteros();
+        });
+        
+        document.getElementById('gastosbtn').addEventListener('click', function() {
+            document.getElementById('gastosbtn').classList.add('active-tab');
+            document.getElementById('audiobtn').classList.remove('active-tab');
+            document.getElementById('gastosboard').classList.remove('hidden');
+            document.getElementById('audioboard').classList.add('hidden');
+            loadMovimientos();
+            updateBalance();
+        });
+        
+        // Funciones para Audioportero
+        function showAddForm() {
+            document.getElementById('audioboardForm').classList.remove('hidden');
+            document.getElementById('formTitle').textContent = 'Agregar Nuevo Audioportero';
+            clearAudioporteroForm();
+            editingAudioporteroId = null;
+        }
+        
+        function hideAddForm() {
+            document.getElementById('audioboardForm').classList.add('hidden');
+        }
+        
+        function clearAudioporteroForm() {
+            document.getElementById('codigo').value = '';
+            document.getElementById('numero').value = '';
+            document.getElementById('nombre').value = '';
+            document.getElementById('direccion').value = '';
+            document.getElementById('telefono').value = '';
+        }
+        
+        function saveAudioportero() {
+            const codigo = document.getElementById('codigo').value.trim();
+            const numero = document.getElementById('numero').value.trim();
+            const nombre = document.getElementById('nombre').value.trim();
+            const direccion = document.getElementById('direccion').value.trim();
+            const telefono = document.getElementById('telefono').value.trim();
+            
+            if (!codigo || !numero || !nombre || !direccion || !telefono) {
+                alert('Por favor complete todos los campos');
+                return;
+            }
+            
+            const audioporteroData = {
+                codigo,
+                numero,
+                nombre,
+                direccion,
+                telefono
+            };
+            
+            if (editingAudioporteroId) {
+                // Actualizar existente
+                database.ref('audioporteros/' + editingAudioporteroId).update(audioporteroData)
+                    .then(() => {
+                        alert('Audioportero actualizado correctamente');
+                        hideAddForm();
+                        loadAudioporteros();
+                    })
+                    .catch(error => {
+                        console.error('Error al actualizar:', error);
+                        alert('Error al actualizar el audioportero');
+                    });
+            } else {
+                // Crear nuevo
+                database.ref('audioporteros').push(audioporteroData)
+                    .then(() => {
+                        alert('Audioportero agregado correctamente');
+                        hideAddForm();
+                        loadAudioporteros();
+                    })
+                    .catch(error => {
+                        console.error('Error al agregar:', error);
+                        alert('Error al agregar el audioportero');
+                    });
+            }
+        }
+        
+        function searchAudioportero() {
+            const searchTerm = document.getElementById('searchCode').value.trim().toLowerCase();
+            if (!searchTerm) {
+                loadAudioporteros();
+                return;
+            }
+            
+            database.ref('audioporteros').once('value', snapshot => {
+                const audioporteros = [];
+                snapshot.forEach(childSnapshot => {
+                    const audioportero = childSnapshot.val();
+                    if (audioportero.codigo.toLowerCase().includes(searchTerm) || 
+                        audioportero.nombre.toLowerCase().includes(searchTerm) ||
+                        audioportero.numero.toLowerCase().includes(searchTerm)) {
+                        audioporteros.push({
+                            id: childSnapshot.key,
+                            ...audioportero
+                        });
+                    }
+                });
+                
+                displayAudioporteros(audioporteros);
+            });
+        }
+        
+        function loadAudioporteros() {
+            database.ref('audioporteros').once('value', snapshot => {
+                const audioporteros = [];
+                snapshot.forEach(childSnapshot => {
+                    audioporteros.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                
+                displayAudioporteros(audioporteros);
+            });
+        }
+        
+        function displayAudioporteros(audioporteros) {
+            const tableBody = document.getElementById('audioboardTableBody');
+            tableBody.innerHTML = '';
+            
+            if (audioporteros.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No se encontraron audioporteros</td></tr>';
+                return;
+            }
+            
+            audioporteros.forEach(audioportero => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">${audioportero.codigo}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${audioportero.numero}</td>
+                    <td class="px-6 py-4">${audioportero.nombre}</td>
+                    <td class="px-6 py-4">${audioportero.direccion}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${audioportero.telefono}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button onclick="editAudioportero('${audioportero.id}')" class="text-blue-500 hover:text-blue-700 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteAudioportero('${audioportero.id}')" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        function editAudioportero(id) {
+            database.ref('audioporteros/' + id).once('value', snapshot => {
+                const audioportero = snapshot.val();
+                document.getElementById('codigo').value = audioportero.codigo;
+                document.getElementById('numero').value = audioportero.numero;
+                document.getElementById('nombre').value = audioportero.nombre;
+                document.getElementById('direccion').value = audioportero.direccion;
+                document.getElementById('telefono').value = audioportero.telefono;
+                
+                document.getElementById('audioboardForm').classList.remove('hidden');
+                document.getElementById('formTitle').textContent = 'Editar Audioportero';
+                editingAudioporteroId = id;
+            });
+        }
+        
+        function deleteAudioportero(id) {
+            if (confirm('¿Está seguro que desea eliminar este audioportero?')) {
+                database.ref('audioporteros/' + id).remove()
+                    .then(() => {
+                        alert('Audioportero eliminado correctamente');
+                        loadAudioporteros();
+                    })
+                    .catch(error => {
+                        console.error('Error al eliminar:', error);
+                        alert('Error al eliminar el audioportero');
+                    });
+            }
+        }
+        
+        // Funciones para Gastos/Ingresos
+        function addGasto() {
+            const desc = document.getElementById('gastoDesc').value.trim();
+            const monto = parseFloat(document.getElementById('gastoMonto').value);
+            const fecha = document.getElementById('gastoFecha').value;
+            const categoria = document.getElementById('gastoCategoria').value;
+            
+            if (!desc || isNaN(monto) || monto <= 0 || !fecha) {
+                alert('Por favor complete todos los campos correctamente');
+                return;
+            }
+            
+            const movimientoData = {
+                descripcion: desc,
+                monto: -Math.abs(monto), // Asegurar que sea negativo
+                fecha,
+                categoria,
+                tipo: 'gasto'
+            };
+            
+            database.ref('movimientos').push(movimientoData)
+                .then(() => {
+                    alert('Gasto registrado correctamente');
+                    clearGastoForm();
+                    loadMovimientos();
+                    updateBalance();
+                })
+                .catch(error => {
+                    console.error('Error al registrar gasto:', error);
+                    alert('Error al registrar el gasto');
+                });
+        }
+        
+        function addIngreso() {
+            const desc = document.getElementById('ingresoDesc').value.trim();
+            const monto = parseFloat(document.getElementById('ingresoMonto').value);
+            const fecha = document.getElementById('ingresoFecha').value;
+            const categoria = document.getElementById('ingresoCategoria').value;
+            
+            if (!desc || isNaN(monto) || monto <= 0 || !fecha) {
+                alert('Por favor complete todos los campos correctamente');
+                return;
+            }
+            
+            const movimientoData = {
+                descripcion: desc,
+                monto: Math.abs(monto), // Asegurar que sea positivo
+                fecha,
+                categoria,
+                tipo: 'ingreso'
+            };
+            
+            database.ref('movimientos').push(movimientoData)
+                .then(() => {
+                    alert('Ingreso registrado correctamente');
+                    clearIngresoForm();
+                    loadMovimientos();
+                    updateBalance();
+                })
+                .catch(error => {
+                    console.error('Error al registrar ingreso:', error);
+                    alert('Error al registrar el ingreso');
+                });
+        }
+        
+        function clearGastoForm() {
+            document.getElementById('gastoDesc').value = '';
+            document.getElementById('gastoMonto').value = '';
+            document.getElementById('gastoFecha').value = '';
+            document.getElementById('gastoCategoria').value = 'mantenimiento';
+        }
+        
+        function clearIngresoForm() {
+            document.getElementById('ingresoDesc').value = '';
+            document.getElementById('ingresoMonto').value = '';
+            document.getElementById('ingresoFecha').value = '';
+            document.getElementById('ingresoCategoria').value = 'cuotas';
+        }
+        
+        function loadMovimientos() {
+            database.ref('movimientos').once('value', snapshot => {
+                const movimientos = [];
+                snapshot.forEach(childSnapshot => {
+                    movimientos.push({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+                
+                // Ordenar por fecha (más reciente primero)
+                movimientos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                
+                displayMovimientos(movimientos);
+            });
+        }
+        
+        function displayMovimientos(movimientos) {
+            const tableBody = document.getElementById('gastosTableBody');
+            tableBody.innerHTML = '';
+            
+            if (movimientos.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No hay movimientos registrados</td></tr>';
+                return;
+            }
+            
+            movimientos.forEach(movimiento => {
+                const row = document.createElement('tr');
+                const tipoClass = movimiento.tipo === 'ingreso' ? 'text-green-500' : 'text-red-500';
+                const tipoIcon = movimiento.tipo === 'ingreso' ? 'fa-arrow-up' : 'fa-arrow-down';
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">${formatDate(movimiento.fecha)}</td>
+                    <td class="px-6 py-4">${movimiento.descripcion}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${formatCategoria(movimiento.categoria)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="${tipoClass}">
+                            <i class="fas ${tipoIcon} mr-1"></i>${movimiento.tipo === 'ingreso' ? 'Ingreso' : 'Gasto'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap ${tipoClass} font-medium">
+                        ${movimiento.tipo === 'ingreso' ? '+' : '-'}$${Math.abs(movimiento.monto).toFixed(2)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button onclick="editMovimiento('${movimiento.id}')" class="text-blue-500 hover:text-blue-700 mr-3">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteMovimiento('${movimiento.id}')" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        function updateBalance() {
+            database.ref('movimientos').once('value', snapshot => {
+                let totalIngresos = 0;
+                let totalGastos = 0;
+                
+                snapshot.forEach(childSnapshot => {
+                    const movimiento = childSnapshot.val();
+                    if (movimiento.tipo === 'ingreso') {
+                        totalIngresos += movimiento.monto;
+                    } else {
+                        totalGastos += Math.abs(movimiento.monto);
+                    }
+                });
+                
+                const balance = totalIngresos - totalGastos;
+                
+                document.getElementById('totalIngresos').textContent = `$${totalIngresos.toFixed(2)}`;
+                document.getElementById('totalGastos').textContent = `$${totalGastos.toFixed(2)}`;
+                
+                const balanceElement = document.getElementById('balanceTotal');
+                balanceElement.textContent = `$${balance.toFixed(2)}`;
+                
+                if (balance >= 0) {
+                    balanceElement.classList.remove('balance-negative');
+                    balanceElement.classList.add('balance-positive');
+                } else {
+                    balanceElement.classList.remove('balance-positive');
+                    balanceElement.classList.add('balance-negative');
+                }
+            });
+        }
+        
+        function filterByDate() {
+            const fechaInicio = document.getElementById('fechaInicio').value;
+            const fechaFin = document.getElementById('fechaFin').value;
+            
+            if (!fechaInicio || !fechaFin) {
+                alert('Por favor seleccione ambas fechas');
+                return;
+            }
+            
+            const startDate = new Date(fechaInicio);
+            const endDate = new Date(fechaFin);
+            
+            if (startDate > endDate) {
+                alert('La fecha de inicio no puede ser mayor a la fecha final');
+                return;
+            }
+            
+            database.ref('movimientos').once('value', snapshot => {
+                const movimientos = [];
+                snapshot.forEach(childSnapshot => {
+                    const movimiento = childSnapshot.val();
+                    const movimientoDate = new Date(movimiento.fecha);
+                    
+                    if (movimientoDate >= startDate && movimientoDate <= endDate) {
+                        movimientos.push({
+                            id: childSnapshot.key,
+                            ...movimiento
+                        });
+                    }
+                });
+                
+                // Ordenar por fecha (más reciente primero)
+                movimientos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+                
+                displayMovimientos(movimientos);
+                
+                // Calcular balance para el período filtrado
+                let totalIngresos = 0;
+                let totalGastos = 0;
+                
+                movimientos.forEach(movimiento => {
+                    if (movimiento.tipo === 'ingreso') {
+                        totalIngresos += movimiento.monto;
+                    } else {
+                        totalGastos += Math.abs(movimiento.monto);
+                    }
+                });
+                
+                const balance = totalIngresos - totalGastos;
+                
+                document.getElementById('totalIngresos').textContent = `$${totalIngresos.toFixed(2)}`;
+                document.getElementById('totalGastos').textContent = `$${totalGastos.toFixed(2)}`;
+                
+                const balanceElement = document.getElementById('balanceTotal');
+                balanceElement.textContent = `$${balance.toFixed(2)}`;
+                
+                if (balance >= 0) {
+                    balanceElement.classList.remove('balance-negative');
+                    balanceElement.classList.add('balance-positive');
+                } else {
+                    balanceElement.classList.remove('balance-positive');
+                    balanceElement.classList.add('balance-negative');
+                }
+            });
+        }
+        
+        function editMovimiento(id) {
+            database.ref('movimientos/' + id).once('value', snapshot => {
+                const movimiento = snapshot.val();
+                editingMovimientoId = id;
+                
+                if (movimiento.tipo === 'gasto') {
+                    document.getElementById('gastoDesc').value = movimiento.descripcion;
+                    document.getElementById('gastoMonto').value = Math.abs(movimiento.monto);
+                    document.getElementById('gastoFecha').value = movimiento.fecha;
+                    document.getElementById('gastoCategoria').value = movimiento.categoria;
+                    
+                    // Mostrar formulario de gastos
+                    document.getElementById('gastoDesc').focus();
+                } else {
+                    document.getElementById('ingresoDesc').value = movimiento.descripcion;
+                    document.getElementById('ingresoMonto').value = movimiento.monto;
+                    document.getElementById('ingresoFecha').value = movimiento.fecha;
+                    document.getElementById('ingresoCategoria').value = movimiento.categoria;
+                    
+                    // Mostrar formulario de ingresos
+                    document.getElementById('ingresoDesc').focus();
+                }
+            });
+        }
+        
+        function deleteMovimiento(id) {
+            if (confirm('¿Está seguro que desea eliminar este movimiento?')) {
+                database.ref('movimientos/' + id).remove()
+                    .then(() => {
+                        alert('Movimiento eliminado correctamente');
+                        loadMovimientos();
+                        updateBalance();
+                    })
+                    .catch(error => {
+                        console.error('Error al eliminar:', error);
+                        alert('Error al eliminar el movimiento');
+                    });
+            }
+        }
+        
+        // Funciones de ayuda
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('es-ES', options);
+        }
+        
+        function formatCategoria(categoria) {
+            const categorias = {
+                'mantenimiento': 'Mantenimiento',
+                'servicios': 'Servicios',
+                'reparaciones': 'Reparaciones',
+                'otros': 'Otros',
+                'cuotas': 'Cuotas',
+                'donaciones': 'Donaciones'
+            };
+            return categorias[categoria] || categoria;
+        }
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            // Establecer fechas por defecto
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('gastoFecha').value = today;
+            document.getElementById('ingresoFecha').value = today;
+            
+            // Cargar datos iniciales
+            loadAudioporteros();
+        });
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=chronozain/sistema" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+</html>
