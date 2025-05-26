@@ -408,9 +408,9 @@ function searchAudioportero() {
         const audioporteros = [];
         snapshot.forEach(childSnapshot => {
             const audioportero = childSnapshot.val();
-            // Verificar coincidencia exacta en cualquier campo, ignorando mayúsculas/minúsculas
+            // Convertir a string antes de aplicar toLowerCase()
             if ([audioportero.codigo, audioportero.nombre, audioportero.numero, audioportero.direccion, audioportero.telefono]
-                .some(value => value.toLowerCase() === searchTerm)) {
+                .some(value => (value || "").toString().toLowerCase() === searchTerm)) {
                 audioporteros.push({
                     id: childSnapshot.key,
                     ...audioportero
