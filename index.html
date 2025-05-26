@@ -286,6 +286,15 @@
             loadMovimientos();
             updateBalance();
         });
+        document.addEventListener('DOMContentLoaded', function() { // [cite: 348]
+    // Set default dates [cite: 348]
+    const today = new Date().toISOString().split('T')[0]; // [cite: 348]
+    document.getElementById('gastoFecha').value = today; // [cite: 348]
+    document.getElementById('ingresoFecha').value = today; // [cite: 348]
+
+    // Load initial data [cite: 349]
+    loadAudioporteros(); // [cite: 349]
+});
         //Exportacion a xlsx
         function exportToExcel() {
     database.ref('audioporteros').once('value', snapshot => {
@@ -358,40 +367,63 @@ function validateAudioporteroDebts() {
     reader.readAsArrayBuffer(file);
 }
         // Funcion de ordenar
-let audioporterosData = [];
-let sortDirection = {};
+let audioporterosData = []; // [cite: 247]
+let sortDirection = {}; // [cite: 248]
 
-function sortTable(field) {
-    if (audioporterosData.length === 0) {
-        console.warn("No hay datos para ordenar.");
-        return;
+function sortTable(field) { // [cite: 248]
+    if (audioporterosData.length === 0) { // [cite: 248]
+        console.warn("No hay datos para ordenar."); // [cite: 248]
+        return; // [cite: 249]
     }
 
-    sortDirection[field] = !sortDirection[field]; // Alterna entre ascendente y descendente
+    sortDirection[field] = !sortDirection[field]; // Alterna entre ascendente y descendente [cite: 249]
 
-    audioporterosData.sort((a, b) => {
-        const valA = (a[field] || "").toString().toLowerCase();
-        const valB = (b[field] || "").toString().toLowerCase();
+    audioporterosData.sort((a, b) => { // [cite: 249]
+        const valA = (a[field] || "").toString().toLowerCase(); // [cite: 249]
+        const valB = (b[field] || "").toString().toLowerCase(); // [cite: 249]
 
-        if (valA < valB) return sortDirection[field] ? -1 : 1;
-        if (valA > valB) return sortDirection[field] ? 1 : -1;
-        return 0;
+        if (valA < valB) return sortDirection[field] ? -1 : 1; // [cite: 249]
+        if (valA > valB) return sortDirection[field] ? 1 : -1; // [cite: 249]
+        return 0; // [cite: 249]
     });
-
-    displayAudioporteros(audioporterosData);
+    displayAudioporteros(audioporterosData); // [cite: 250]
 }
 
-function loadAudioporteros() {
-    database.ref('audioporteros').once('value', snapshot => {
-        audioporterosData = []; // Asegurar que se reinicia correctamente
-        snapshot.forEach(childSnapshot => {
-            audioporterosData.push({
-                id: childSnapshot.key,
-                ...childSnapshot.val()
+function loadAudioporteros() { // [cite: 250]
+    database.ref('audioporteros').on('value', snapshot => { // Change .once to .on for real-time updates and initial load
+        audioporterosData = []; // Asegurar que se reinicia correctamente [cite: 250]
+        snapshot.forEach(childSnapshot => { // [cite: 251]
+            audioporterosData.push({ // [cite: 251]
+                id: childSnapshot.key, // [cite: 272]
+                ...childSnapshot.val() // [cite: 272]
             });
         });
+        displayAudioporteros(audioporterosData); // [cite: 251]
+        validateAudioporteroDebts(); // Add this call to ensure debt validation happens after data is loaded
+    });
+}
 
-        displayAudioporteros(audioporterosData);
+function searchAudioportero() { // [cite: 267]
+    const searchTerm = document.getElementById('searchCode').value.trim().toLowerCase(); // [cite: 267]
+    if (!searchTerm) { // [cite: 268]
+        loadAudioporteros(); // This will now correctly load and display all data.
+        return; // [cite: 269]
+    }
+
+    database.ref('audioporteros').once('value', snapshot => { // [cite: 269]
+        const searchResults = []; // Use a temporary array for search results
+        snapshot.forEach(childSnapshot => { // [cite: 269]
+            const audioportero = childSnapshot.val(); // [cite: 269]
+            if ([audioportero.codigo, audioportero.nombre, audioportero.numero, audioportero.direccion, audioportero.telefono]
+                .some(value => (value || "").toString().toLowerCase() === searchTerm)) { // [cite: 269, 270]
+                searchResults.push({ // [cite: 270]
+                    id: childSnapshot.key, // [cite: 271]
+                    ...audioportero // [cite: 271]
+                });
+            }
+        });
+
+        displayAudioporteros(searchResults); // [cite: 271]
     });
 }
         
