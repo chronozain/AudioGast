@@ -330,15 +330,21 @@
     reader.readAsArrayBuffer(file);
 }
         // Funcion de ordenar
-        let audioporterosData = [];
+let audioporterosData = [];
 let sortDirection = {};
 
 function sortTable(field) {
+    if (audioporterosData.length === 0) {
+        console.warn("No hay datos para ordenar.");
+        return;
+    }
+
     sortDirection[field] = !sortDirection[field]; // Alterna entre ascendente y descendente
+
     audioporterosData.sort((a, b) => {
         const valA = (a[field] || "").toString().toLowerCase();
         const valB = (b[field] || "").toString().toLowerCase();
-        
+
         if (valA < valB) return sortDirection[field] ? -1 : 1;
         if (valA > valB) return sortDirection[field] ? 1 : -1;
         return 0;
@@ -349,7 +355,7 @@ function sortTable(field) {
 
 function loadAudioporteros() {
     database.ref('audioporteros').once('value', snapshot => {
-        audioporterosData = [];
+        audioporterosData = []; // Asegurar que se reinicia correctamente
         snapshot.forEach(childSnapshot => {
             audioporterosData.push({
                 id: childSnapshot.key,
